@@ -1,2 +1,2 @@
 # juego
-Juego en ensamblado
+Intento de juego en ensamblador
