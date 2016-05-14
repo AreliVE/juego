@@ -31,7 +31,7 @@ espacio		DB	13,10,13,10,13,10,'$'
 msjs		DB	13,10,13,10,'Seleccionaste suma','$'
 msjd		DB	13,10,13,10,'Seleccionaste division','$'
 msjm		DB	13,10,13,10,'Seleccionaste multiplicacion','$'
-msjres		DB	13,10,13,10,'¿Cual crees que es el resultado de la operacion?','$'
+msjres		DB	13,10,13,10,'Cual crees que es el resultado de la operacion?','$'
 opcion		DB	0
 ErrorCAP 	DB 0
 Cantidad 	DB 0
@@ -39,9 +39,12 @@ CantUnoR 	DW 0
 CantDosR 	DW 0
 CantUnoN 	DW 6,0,6 DUP (?)
 CantDosN 	DW 6,0,6 DUP (?)
+CantUnoU 	DW 6,0,6 DUP (?)
+CantDosU 	DW 6,0,6 DUP (?)
 Funcion 	DB 0
 Resulta 	DB 13,10,10,10, 'El resultado es:$'
 ResultaR 	DB 11 DUP(?)
+ResultaUsu	DB 11 DUP(?)
 			DB 13,10,13,10,'$'
 Salida		DB 13,10,13,10,'Pulse una tecla par salir'
 			DB 13,10,13,10,'$'
@@ -57,6 +60,10 @@ Error4		DB	7,7,7,13,10,'Error: Intento de division por cero'
 CantUnoM 	DB 13,10,13,10,'Escribe el primer numero'
 			DB 13,10,13,13,'$'
 CantDosM 	DB 13,10,13,10,'Escribe el segundo numero'
+			DB 13,10,13,13,'$'
+msjigual 	DB 13,10,13,10,'Tu respuesta es correcta :)'
+			DB 13,10,13,13,'$'
+msjdif	 	DB 13,10,13,10,'Tu respuesta es incorrecta :('
 			DB 13,10,13,13,'$'
 
 ;------------------------------------------------------------------
@@ -104,7 +111,7 @@ PotenciaF DW $
 		int 21h
 		mov opcion, al
 			
-		cmp al, 'a'			;Compara si el caracter capturado es el numero 1
+		cmp al, 'a'			    ;Compara si el caracter capturado es el numero 1
 		je sum					;Se va a suma si lo es
 		cmp al, 'b'				;Compara con 2
 		je mult					;Salta a mult si lo es
@@ -153,37 +160,68 @@ PotenciaF DW $
 		cmp opcion, 'b'				;Compara con b
 		je mult2					;Salta a mult si lo es
 		cmp opcion, 'c'				;Compara con c
-		je divi2					;Salta a division si lo es
+		je divi2					;Salta a division si lo es  
+		
+	CapResUsu:
+		mov ErrorCAP, 0									;Esta en cero por que no debe haber error
+		mov cantidad,1
 			
+		mov dx, offset msjres
+		call imprime 
+		
+		mov dx, offset espacio
+		call imprime
+		
+		mov ah,0ah
+		mov dx,offset CantUnoU 	
+		int 21h
+	    	 
+			 
+		call ConvNUM2
+		cmp ErrorCap,1									;cicla hasta que el dato deja de ser 0.
+		jz CapResUsu									;Regresa al inicio de la etiqueta
+		mov CantDosR,bx		
+		mov dx, offset resulta
+		call imprime
+		mov dx, offset ResultaUsu
+		call imprime
+		jmp fin
+							                                                           		                                                   
 	sum:
 		mov dx, offset msjs
 		call imprime
 		jmp capCant01
 		sum2:
 			call suma
-			jmp fin
+			;call obtenTecla
+			jmp CapResUsu
 	mult:
 		mov dx, offset msjm
 		call imprime
 		jmp capCant01
 		mult2:
 			call multiplica
-			jmp fin
+			;call obtenTecla
+			jmp CapResUsu
 	divi:
 		mov dx, offset msjd
 		call imprime
 		jmp capCant01
 		divi2:
 			call divide
-			;jmp fin
-			;jmp pregunta
+			jmp CapResUsu
+			jmp fin
 			
-	;pregunta:
+					
+	;comparacion:
 	;	mov dx, offset msjres
 	;	call imprime
-	;	jmp fin2
+		;jmp CapResUsu
+		 
 		
-	fin:
+	fin: 
+	    ;mov dx, offset cantUsu
+		;call imprime
 		call obtenTecla
 		;ret
 		mov ax, 4c00h
@@ -241,8 +279,8 @@ PotenciaF DW $
 	suma proc near
 		mov ax,cantUnoR
 		mov bx,cantdosR
-		cmp bx,0
-		jnz suma01
+		;cmp bx,0
+		;jnz suma01
 		;mov cantidad,3
 		;call huboerror
 		;ret
@@ -251,10 +289,13 @@ PotenciaF DW $
 			add ax,bx
 			xor dx,dx
 			call convASCII
-			mov dx, offset resulta
-			call imprime
-			mov dx, offset Resultar
-			call imprime
+			
+			call usuario
+			
+			;mov dx, offset resulta
+			;call imprime
+			;mov dx, offset Resultar
+			;call imprime
 			ret
 	suma endp
 ;------------------------------------------------------------------
@@ -276,6 +317,26 @@ PotenciaF DW $
 		int 16h									;Lee una tecla atraves del teclado
 		ret
 	obtenTecla endp
+;------------------------------------------------------------------
+;						Procedimiento para respuestas
+;------------------------------------------------------------------		
+	Respuesta proc near
+		;cmp resultar, cantusu
+		je igual
+		;cmp resultar, canttausu
+		jne diferente
+		ret
+		
+		igual:
+		mov dx, offset msjigual
+		call imprime
+		ret
+		diferente:
+		mov dx, offset msjdif
+		call imprime
+		ret
+		
+	Respuesta endp
 ;------------------------------------------------------------------
 ;						Procedimiento para convertir
 ;------------------------------------------------------------------		
@@ -322,7 +383,88 @@ PotenciaF DW $
 		convnum06:
 			cld											;Limpia todo.
 			ret											;Regresa 
-		convnum endp
+		convnum endp    
+	                                                    
+;------------------------------------------------------------------
+;						Procedimiento para convertir2
+;------------------------------------------------------------------		
+	convNUM2 Proc Near
+		mov dx,0ah
+		cmp cantidad, 0								;Compara cantidad con 0
+		jnz convNum01								
+		mov di, offset cantUnoU+1					;Si no es cero, mueve el indice en uno
+		mov cx, [di]								;
+		mov si, offset cantUnoU+2
+		jmp convNum02								;Cuando ya termina de convertir el primer numero
+		ConvNum01U:
+			mov di, offset cantDosU+1
+			mov cx, [di]
+			mov si, offset cantDosU+2
+		convNum02U:									;
+			xor ch,ch
+			mov di, offset potencia					;
+			dec si									;Decrementa el indice
+			add si,cx								;Aqui es donde juntamos las cantidades
+			xor bx,bx
+			std										;Apunta al siguiente indice
+		convNum03U:
+			lodsb									;Carga de uno en uno
+			cmp Al,"0" 
+			jb convnum04
+			cmp al,"9"
+			sub al, 30h
+			cbw
+			mov dx, [di]
+			mul dx
+			jo convnum05
+			add bx,ax
+			jo convnum05
+			add di,2
+			loop convnum03
+			jmp convnum06
+		convnum04U:
+			call huboerror
+			jmp convnum06
+		convnum05U:
+			mov cantidad,2
+			call huboerror
+		convnum06U:
+			cld											;Limpia todo.
+			ret											;Regresa 
+		convnum2 endp    
+;------------------------------------------------------------------
+;						Guardar respuesta del usuario
+;------------------------------------------------------------------
+	usuario proc near
+		push dx
+		push ax 
+		xor si,si
+		mov si, offset resultaUsu
+		pop ax
+			pop dx
+			mov bx, ax
+			mov ax,dx
+			mov si, offset resultaUsu
+			add si, 11
+			mov cx, 10
+			obtenDigitoU:
+			dec si
+			xor dx, dx
+			div cx
+			mov di, ax
+			mov ax, bx
+			div cx
+			mov bx, ax
+			mov ax,di
+			add dl, 30h
+			mov [si],dl
+			or ax,ax
+			jnz obtenDigitoU
+			or bx,bx
+			jnz obtenDigitoU
+			ret
+	usuario endp
+	
 ;------------------------------------------------------------------
 ;						Etiqueta para el menu
 ;------------------------------------------------------------------
@@ -341,7 +483,7 @@ PotenciaF DW $
 			;mov ax, bx
 			mov bx, ax
 			mov ax,dx
-			mov si, offset ResultaR
+			mov si, offset resultaR
 			add si, 11
 			mov cx, 10
 			obtenDigito:
@@ -361,7 +503,48 @@ PotenciaF DW $
 			or bx,bx
 			jnz obtenDigito
 			ret
-	convASCII endp
+	convASCII endp 	                                                   
+
+;------------------------------------------------------------------
+;						Etiqueta para el menu
+;------------------------------------------------------------------
+	
+	convASCII2 proc near
+		push dx
+		push ax
+		mov si, offset resultaUsu
+		mov cx, 10
+		mov al, '*'
+			convASCII02:
+			mov [si], al
+			inc si
+			loop convASCII02
+			pop ax
+			pop dx
+			;mov ax, bx
+			mov bx, ax
+			mov ax,dx
+			mov si, offset resultaUsu
+			add si, 11
+			mov cx, 10
+			obtenDigito2:
+			;DX contendra el residuo de la division
+			dec si
+			xor dx, dx
+			div cx
+			mov di, ax
+			mov ax, bx
+			div cx
+			mov bx, ax
+			mov ax,di
+			add dl, 30h
+			mov [si],dl
+			or ax,ax
+			jnz obtenDigito2
+			or bx,bx
+			jnz obtenDigito2
+			ret
+	convASCII2 endp
 ;------------------------------------------------------------------
 ;						Procedimiento para el menu
 ;------------------------------------------------------------------		
