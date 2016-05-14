@@ -1,0 +1,433 @@
+;PROYECTO
+;Areli Vazquez Escobedo
+;13111142
+
+
+.MODEL SMALL
+.DATA
+;------------------------------------------------------------------
+;Declaracion de variables
+;------------------------------------------------------------------
+
+datos	db	13,10,13,10,'			    |       INSTITUTO TECNOLOGICO DE CD. JUAREZ	    | 	',
+		db	13,10,13,10,'				|          MATERIA: LENGUAJES DE INTERFAZ  		|    ',
+		db	13,10,13,10,'				|            POR: ARELI VAZQUEZ ESCOBEDO    	   |	',
+		db	13,10,13,10,'				|            	NO. CONTROL 13111142			  |	',
+		db	13,10,13,10,'			    |		            MAYO 2016					 | ','$'
+msj		db	13,10,13,10,'                         Selecciona una operacion a realizar','$'
+opc		db	13,10,13,10,13,10,'                              Suma................(a)',13,10,	
+		db	13,10,13,10,13,10,'                              Multiplicacion......(b)',13,10,
+		db	13,10,13,10,13,10,'                              Division............(c)','$'
+deco	db	13,10,13,10,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~','$'
+deco2	db	13,10,13,10,'                ---------------------------------------------------','$'
+descr	db	13,10,13,10,'			                           EL JUEGO	',,
+        db	13,10,13,10,'               El juego inicia pidiendo que se seleccione una operacion    ',
+        db	13,10,13,10,'		         inmediatamente despues habra que escribir dos numeros    ',
+        db	13,10,13,10,'			             luego pedira que se escriba el resultado ',
+        db	13,10,13,10,'				             de la operacion seleccionada    '
+        db	13,10,13,10,'				    finalmente nos dira si la respuesta es correcta.  	 ', '$'
+
+espacio		DB	13,10,13,10,13,10,'$'
+msjs		DB	13,10,13,10,'Seleccionaste suma','$'
+msjd		DB	13,10,13,10,'Seleccionaste division','$'
+msjm		DB	13,10,13,10,'Seleccionaste multiplicacion','$'
+msjres		DB	13,10,13,10,'¿Cual crees que es el resultado de la operacion?','$'
+opcion		DB	0
+ErrorCAP 	DB 0
+Cantidad 	DB 0
+CantUnoR 	DW 0
+CantDosR 	DW 0
+CantUnoN 	DW 6,0,6 DUP (?)
+CantDosN 	DW 6,0,6 DUP (?)
+Funcion 	DB 0
+Resulta 	DB 13,10,10,10, 'El resultado es:$'
+ResultaR 	DB 11 DUP(?)
+			DB 13,10,13,10,'$'
+Salida		DB 13,10,13,10,'Pulse una tecla par salir'
+			DB 13,10,13,10,'$'
+Error1		DB	7,7,7,13,10,'Error: Digito invalido en cantidad 1'
+			DB 13,10,13,10,'$'
+Error2		DB	7,7,7,13,10,'Error: Digito invalido en cantidad 2'
+			DB 13,10,13,10,'$'
+Error3		DB	7,7,7,13,10,'Error: Cantidad fuera de Rango (65535)'		
+			DB '!!!.'
+			DB 13,10,13,10,'$'
+Error4		DB	7,7,7,13,10,'Error: Intento de division por cero'
+			DB 13,10,13,10,'$'
+CantUnoM 	DB 13,10,13,10,'Escribe el primer numero'
+			DB 13,10,13,13,'$'
+CantDosM 	DB 13,10,13,10,'Escribe el segundo numero'
+			DB 13,10,13,13,'$'
+
+;------------------------------------------------------------------
+;						Potencias a utilizar
+;------------------------------------------------------------------
+
+Potencia DW 0001h,000ah,0064h,03E8h,2710h
+PotenciaF DW $
+.CODE
+;------------------------------------------------------------------
+;						Etiqueta inicial
+;------------------------------------------------------------------
+	Empieza:
+		Mov AH,0FH
+		int 10h
+		Mov Ah,0
+		int 10h
+		
+		Mov AX,@data
+		Mov DS, AX
+			
+		call mostrarInfo
+			
+		mov ah, 01h
+		int 21h
+			 
+		call mostrarDesc
+			
+		mov ah, 01h
+		int 21h
+			
+		call mostrarMenu
+			
+		mov si, offset ResultaR							;Indexa o parametriza. 
+		add si,11										;Suma 11 espacios al indice.
+		mov al,'$'										;Toma una cadena vacia
+		mov [si],al										;Mando e
+		
+;------------------------------------------------------------------
+;						Etiqueta para el menu
+;------------------------------------------------------------------
+
+	compara:
+		mov ah, 01h				;Espero captura del teclado
+		int 21h
+		mov opcion, al
+			
+		cmp al, 'a'			;Compara si el caracter capturado es el numero 1
+		je sum					;Se va a suma si lo es
+		cmp al, 'b'				;Compara con 2
+		je mult					;Salta a mult si lo es
+		cmp al, 'c'				;Compara con 3
+		je divi					;Salta a division si lo es
+;------------------------------------------------------------------
+;						Captura primer numero
+;------------------------------------------------------------------
+	CapCant01:
+		mov dx, offset CantUnoM
+		call imprime
+			
+		mov ah,0ah
+		mov dx,offset CantUnoN
+		int 21h
+			
+		mov ErrorCAP, 0									;Esta en cero por que no debe haber error
+		mov cantidad,0
+		call ConvNUM
+		cmp ErrorCap,1									;cicla hasta que el dato deja de ser 0.
+		jz CapCant01
+		mov CantUnoR,bx									;En bx esta lo que tecleo el usuario
+		
+;------------------------------------------------------------------
+;						Captura segundo numero
+;------------------------------------------------------------------
+
+	CapCant02:
+		mov ErrorCAP, 0									;Esta en cero por que no debe haver error
+		mov cantidad,1
+			
+		mov dx, offset CantDosM
+		call imprime
+		
+		mov ah,0ah
+		mov dx,offset CantDosN
+		int 21h
+			
+		call ConvNUM
+		cmp ErrorCap,1									;cicla hasta que el dato deja de ser 0.
+		jz CapCant02									;Regresa al inicio de la etiqueta
+		mov CantDosR,bx									;Aqui esta la segunda cantidad
+			
+		cmp opcion, 'a'			;Compara si el caracter capturado es la letra A
+		je sum2					;Se va a suma si lo es
+		cmp opcion, 'b'				;Compara con b
+		je mult2					;Salta a mult si lo es
+		cmp opcion, 'c'				;Compara con c
+		je divi2					;Salta a division si lo es
+			
+	sum:
+		mov dx, offset msjs
+		call imprime
+		jmp capCant01
+		sum2:
+			call suma
+			jmp fin
+	mult:
+		mov dx, offset msjm
+		call imprime
+		jmp capCant01
+		mult2:
+			call multiplica
+			jmp fin
+	divi:
+		mov dx, offset msjd
+		call imprime
+		jmp capCant01
+		divi2:
+			call divide
+			;jmp fin
+			;jmp pregunta
+			
+	;pregunta:
+	;	mov dx, offset msjres
+	;	call imprime
+	;	jmp fin2
+		
+	fin:
+		call obtenTecla
+		;ret
+		mov ax, 4c00h
+		int 21h
+	;fin2:
+		;call obtenTecla
+	;	mov ax, 4c00h
+	;	int 21h
+;------------------------------------------------------------------
+;						Procedimiento que multiplica
+;------------------------------------------------------------------
+
+	multiplica proc near
+		mov ax,cantUnoR
+		mov bx,cantdosR
+		cmp bx,0
+		jnz multiplica01
+		mov cantidad,3
+		call huboerror
+		ret
+		multiplica01:
+			mul bx									;Divide ax/bx y guarda en bx
+			xor dx,dx
+			call convASCII
+			mov dx, offset resulta
+			call imprime
+			mov dx, offset Resultar
+			call imprime
+			ret
+	multiplica Endp
+;------------------------------------------------------------------
+;						Procedimiento que divide
+;------------------------------------------------------------------
+	divide proc near
+		mov ax,cantUnoR
+		mov bx,cantdosR
+		cmp bx,0
+		jnz divide01
+		mov cantidad,3
+		call huboerror
+		ret
+		divide01:
+			div bx									;Divide ax/bx y guarda en bx
+			xor dx,dx
+			call convASCII
+			mov dx, offset resulta
+			call imprime
+			mov dx, offset Resultar
+			call imprime
+			ret
+	divide endp
+;------------------------------------------------------------------
+;						Procedimiento que suma
+;------------------------------------------------------------------
+	suma proc near
+		mov ax,cantUnoR
+		mov bx,cantdosR
+		cmp bx,0
+		jnz suma01
+		;mov cantidad,3
+		;call huboerror
+		;ret
+		suma01:
+			;add bx,ax									;Divide ax/bx y guarda en bx
+			add ax,bx
+			xor dx,dx
+			call convASCII
+			mov dx, offset resulta
+			call imprime
+			mov dx, offset Resultar
+			call imprime
+			ret
+	suma endp
+;------------------------------------------------------------------
+;						Procedimiento para imprimir
+;------------------------------------------------------------------
+	Imprime Proc Near							;El mensaje ya esta cargado
+		mov ah,9								;Por eso con estas lineas basta
+		int 21h
+		ret
+	imprime endp
+;------------------------------------------------------------------
+;						Procedimiento para obtener tecla pulsada
+;------------------------------------------------------------------		
+	obtenTecla proc near
+		lea dx, salida
+		mov ah,09
+		int 21h
+		mov ah,0
+		int 16h									;Lee una tecla atraves del teclado
+		ret
+	obtenTecla endp
+;------------------------------------------------------------------
+;						Procedimiento para convertir
+;------------------------------------------------------------------		
+	convNUM Proc Near
+		mov dx,0ah
+		cmp cantidad, 0								;Compara cantidad con 0
+		jnz convNum01								
+		mov di, offset cantUnoN+1					;Si no es cero, mueve el indice en uno
+		mov cx, [di]								;
+		mov si, offset cantUnoN+2
+		jmp convNum02								;Cuando ya termina de convertir el primer numero
+		ConvNum01:
+			mov di, offset cantDosN+1
+			mov cx, [di]
+			mov si, offset cantDosN+2
+		convNum02:									;
+			xor ch,ch
+			mov di, offset potencia					;
+			dec si									;Decrementa el indice
+			add si,cx								;Aqui es donde juntamos las cantidades
+			xor bx,bx
+			std										;Apunta al siguiente indice
+		convNum03:
+			lodsb									;Carga de uno en uno
+			cmp Al,"0" 
+			jb convnum04
+			cmp al,"9"
+			sub al, 30h
+			cbw
+			mov dx, [di]
+			mul dx
+			jo convnum05
+			add bx,ax
+			jo convnum05
+			add di,2
+			loop convnum03
+			jmp convnum06
+		convnum04:
+			call huboerror
+			jmp convnum06
+		convnum05:
+			mov cantidad,2
+			call huboerror
+		convnum06:
+			cld											;Limpia todo.
+			ret											;Regresa 
+		convnum endp
+;------------------------------------------------------------------
+;						Etiqueta para el menu
+;------------------------------------------------------------------
+	convASCII proc near
+		push dx
+		push ax
+		mov si, offset resultaR
+		mov cx, 10
+		mov al, '*'
+			convASCII01:
+			mov [si], al
+			inc si
+			loop convASCII01
+			pop ax
+			pop dx
+			;mov ax, bx
+			mov bx, ax
+			mov ax,dx
+			mov si, offset ResultaR
+			add si, 11
+			mov cx, 10
+			obtenDigito:
+			;DX contendra el residuo de la division
+			dec si
+			xor dx, dx
+			div cx
+			mov di, ax
+			mov ax, bx
+			div cx
+			mov bx, ax
+			mov ax,di
+			add dl, 30h
+			mov [si],dl
+			or ax,ax
+			jnz obtenDigito
+			or bx,bx
+			jnz obtenDigito
+			ret
+	convASCII endp
+;------------------------------------------------------------------
+;						Procedimiento para el menu
+;------------------------------------------------------------------		
+	mostrarMenu proc near
+		mov dx, offset deco
+		call imprime
+		mov dx, offset msj
+		call imprime
+		mov dx, offset deco	
+		call imprime
+		mov dx, offset opc
+		call imprime
+		mov dx, offset espacio
+		call imprime
+		ret				
+	mostrarMenu endp
+;------------------------------------------------------------------
+;						Procedimiento para informacion
+;------------------------------------------------------------------						
+	mostrarInfo proc near
+		mov dx, offset deco2
+		call imprime
+		mov dx, offset datos
+		call imprime
+		mov dx, offset deco2
+		call imprime
+		ret
+	mostrarInfo endp
+;------------------------------------------------------------------
+;					Procedimiento para descripcion
+;------------------------------------------------------------------		
+	mostrarDesc proc near
+		mov dx, offset descr
+		call imprime
+		ret
+	mostrarDesc endp
+;------------------------------------------------------------------
+;					Procedimiento para valorar errores
+;------------------------------------------------------------------
+	huboError proc near
+		cmp cantidad,0
+		jnz huboError02
+		mov dx, offset Error1
+		call imprime
+		mov ErrorCAP,1
+		jmp huboError05
+			huboError02:
+				cmp cantidad,1
+				jnz huboerror03
+				mov dx, offset Error2
+				call imprime
+				mov errorCAP,1
+				jmp huboerror05
+			huboError03:
+				cmp cantidad,2
+				jnz huboError04
+				mov dx, offset Error3
+				call imprime
+				mov errorCAP,1
+				jmp huboError05
+			huboError04:
+				mov dx, offset Error4
+				call imprime
+				mov ErrorCAP,1
+				HuboError05:
+				ret
+	HuboError endp
+.stack
+end empieza	
